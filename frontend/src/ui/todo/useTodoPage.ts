@@ -1,26 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Todo } from "@/domain/todo";
-import { TodoService } from "@/application/todo/usecases";
-import { TodoApiRepository } from "@/infrastructure/todo/todoApiRepository";
+import type { CreateTodoInput, Todo, TodoId } from "@/domain/todo";
+import { createTodoUseCases } from "@/infrastructure/todo/todoDependencies";
 
-const service = new TodoService(new TodoApiRepository());
+const useCases = createTodoUseCases();
 
 export function useTodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // โหลดครั้งแรก
   useEffect(() => {
     (async () => {
       try {
         setInitialLoading(true);
         setError(null);
-        const data = await service.listTodos();
+        const data = await useCases.listTodos();
         setTodos(data);
       } catch (err) {
         setError((err as Error).message);
@@ -30,35 +27,17 @@ export function useTodoPage() {
     })();
   }, []);
 
-  // เพิ่ม todo ใหม่
-  // แก้ไข: รับ parameter (payload) เข้ามา
-  const handleAdd = async (payload?: { title: string; label?: string; priority?: string }) => {
-    // ถ้ามี payload ให้ใช้ title จาก payload, ถ้าไม่มีให้ใช้จาก state title เดิม
-    const textToSave = payload?.title ?? title;
-    const trimmed = textToSave.trim();
-
-    if (!trimmed) {
-      return; 
+  const handleAdd = async (input: CreateTodoInput) => {
+    if (!input.title.trim()) {
+      return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      
-      // ส่งค่าไปที่ Service
-      // หมายเหตุ: ตรงนี้ต้องตรวจสอบว่า service.addTodo ของคุณรองรับ Label/Priority หรือยัง
-      // ถ้า service ยังรับแค่ string ก็ส่งแค่ trimmed ไปก่อนเพื่อให้บันทึกได้
-      const newTodo = await service.addTodo(trimmed);
-      
-      // ถ้า service รองรับ object แล้ว ให้เปลี่ยนเป็น:
-      // const newTodo = await service.addTodo({ 
-      //    title: trimmed, 
-      //    label: payload?.label, 
-      //    priority: payload?.priority 
-      // });
 
+      const newTodo = await useCases.addTodo(input);
       setTodos((prev) => [newTodo, ...prev]);
-      setTitle(""); // ล้างค่า state เผื่อไว้
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -66,15 +45,12 @@ export function useTodoPage() {
     }
   };
 
-  // toggle completed
-  const handleToggle = async (id: number) => {
+  const handleToggle = async (id: TodoId) => {
     try {
       setLoading(true);
       setError(null);
-      const updated = await service.toggleTodo(id);
-      setTodos((prev) =>
-        prev.map((t) => (t.id === updated.id ? updated : t))
-      );
+      const updated = await useCases.toggleTodo(id);
+      setTodos((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -82,12 +58,11 @@ export function useTodoPage() {
     }
   };
 
-  // ลบ todo
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: TodoId) => {
     try {
       setLoading(true);
       setError(null);
-      await service.deleteTodo(id);
+      await useCases.deleteTodo(id);
       setTodos((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
       setError((err as Error).message);
@@ -98,8 +73,6 @@ export function useTodoPage() {
 
   return {
     todos,
-    title,
-    setTitle,
     loading,
     initialLoading,
     error,

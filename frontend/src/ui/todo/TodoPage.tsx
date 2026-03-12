@@ -20,15 +20,15 @@ import {
   FilterOutlined,
 } from "@ant-design/icons";
 import { useTodoPage } from "./useTodoPage";
-import { Todo } from "@/domain/todo";
+import type { Todo, TodoPriority } from "@/domain/todo";
 
-const priorityColor: Record<string, string> = {
+const priorityColor: Record<TodoPriority, string> = {
   Low: "blue",
   Medium: "orange",
   High: "red",
 };
 
-const priorityMap: Record<number, "Low" | "Medium" | "High"> = {
+const priorityMap: Record<number, TodoPriority> = {
   1: "Low",
   2: "Medium",
   3: "High",
@@ -51,9 +51,8 @@ export function TodoPage() {
 
   // Filter States
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  // ปรับเป็น Array string[] เพื่อรองรับหลายค่า
-  const [filterPriority, setFilterPriority] = useState<string[]>([]); 
-  const [tempFilterPriority, setTempFilterPriority] = useState<string[]>([]);
+  const [filterPriority, setFilterPriority] = useState<TodoPriority[]>([]);
+  const [tempFilterPriority, setTempFilterPriority] = useState<TodoPriority[]>([]);
 
   // --- Drawer Handlers ---
   const openDrawer = () => setIsDrawerOpen(true);
@@ -71,7 +70,6 @@ export function TodoPage() {
 
       await handleAdd({
         title: values.title,
-        label: values.label || "General",
         priority: p,
       });
 
@@ -83,12 +81,12 @@ export function TodoPage() {
 
   // --- Filter Handlers ---
   const handleOpenFilter = () => {
-    setTempFilterPriority(filterPriority); // โหลดค่าเดิมมาแสดง (เป็น array)
+    setTempFilterPriority(filterPriority);
     setIsFilterModalOpen(true);
   };
 
   const handleSaveFilter = () => {
-    setFilterPriority(tempFilterPriority); // บันทึกค่าเพื่อกรองจริง
+    setFilterPriority(tempFilterPriority);
     setIsFilterModalOpen(false);
   };
 
@@ -99,11 +97,9 @@ export function TodoPage() {
   // --- Logic ---
   const allDone = todos.length > 0 && todos.every((t) => t.completed);
 
-  // กรองรายการ Todo ก่อนนำไปแสดงผล (รองรับ Multiple Selection)
   const visibleTodos = todos.filter((todo) => {
-    if (filterPriority.length === 0) return true; // ถ้า array ว่าง ให้แสดงทั้งหมด
-    const priority = (todo as any).priority ?? "Medium";
-    return filterPriority.includes(priority); // เช็คว่า priority อยู่ในรายการที่เลือกหรือไม่
+    if (filterPriority.length === 0) return true;
+    return filterPriority.includes(todo.priority);
   });
 
   return (
@@ -133,11 +129,10 @@ export function TodoPage() {
             ))}
 
             <div
-              className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-900/5 transition-hover hover:bg-slate-50 hover:text-slate-600 ${
-                filterPriority.length > 0
+              className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-900/5 transition-hover hover:bg-slate-50 hover:text-slate-600 ${filterPriority.length > 0
                   ? "text-blue-500 ring-blue-100"
                   : "text-slate-400"
-              }`}
+                }`}
               onClick={handleOpenFilter}
             >
               <FilterOutlined style={{ fontSize: 12 }} />
@@ -180,15 +175,13 @@ export function TodoPage() {
           <div className="flex flex-col gap-3">
             {visibleTodos.map((todo: Todo) => {
               const isDone = todo.completed;
-              const priority: "Low" | "Medium" | "High" =
-                (todo as any).priority ?? "Medium";
+              const priority = todo.priority;
 
               return (
                 <div
                   key={todo.id}
-                  className={`group flex items-start gap-4 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all ${
-                    isDone ? "opacity-60" : "hover:shadow-md"
-                  }`}
+                  className={`group flex items-start gap-4 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all ${isDone ? "opacity-60" : "hover:shadow-md"
+                    }`}
                 >
                   {/* Left: Delete Icon with Confirmation */}
                   <Popconfirm
@@ -261,12 +254,12 @@ export function TodoPage() {
           <div className="py-4">
             <h4 className="mb-2 text-sm text-slate-500">Priority</h4>
             <Select
-              mode="multiple" // เปิดโหมดเลือกหลายรายการ
+              mode="multiple"
               style={{ width: "100%" }}
               placeholder="Select Priority"
               allowClear
               value={tempFilterPriority}
-              onChange={(value) => setTempFilterPriority(value)}
+              onChange={(value) => setTempFilterPriority(value as TodoPriority[])}
               options={[
                 { value: "Low", label: "Low" },
                 { value: "Medium", label: "Medium" },

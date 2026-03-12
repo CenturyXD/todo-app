@@ -1,16 +1,24 @@
-export type TodoId = string;
+export type TodoId = number;
+
+export type TodoPriority = "Low" | "Medium" | "High";
 
 export interface Todo {
-  id: number;
+  id: TodoId;
   title: string;
   completed: boolean;
-  priority?: "Low" | "Medium" | "High";
-  label?: string;
+  priority: TodoPriority;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTodoInput {
+  title: string;
+  priority?: TodoPriority;
 }
 
 export interface TodoRepository {
   getAll(): Promise<Todo[]>;
-  create(title: string): Promise<Todo>;
+  create(input: CreateTodoInput): Promise<Todo>;
   toggle(id: TodoId): Promise<Todo>;
   remove(id: TodoId): Promise<void>;
 }
