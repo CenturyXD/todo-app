@@ -19,3 +19,14 @@ docker build -t centuryxd/todo-app:latest .
 
 # 3. Push Image ขึ้น Docker Hub
 docker push centuryxd/todo-app:latest
+
+# -------------------------------------------------------------
+# HOW TO Setup Database (Migrate) on ocp
+# -------------------------------------------------------------
+
+# 1. หาชื่อ Pod
+oc get pods
+# (สมมติได้ชื่อ todo-app-6d4b5f8-xhz12)
+
+# 2. Remote เข้าไปสั่ง Migrate
+oc rsh <POD_NAME> php /var/www/html/artisan migrate --force
