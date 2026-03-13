@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # -----------------------------------------------------------------
+  # 1. Main Application (Laravel + Next.js + Nginx)
+  # -----------------------------------------------------------------
+  app:
+    # ใช้วิธี Build จาก Dockerfile ปัจจุบัน
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      # ส่ง Build Argument (Base URL ว่างไว้สำหรับ Relative Path)
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ""
+    
+    container_name: todo-app-local
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # เข้าเว็บทาง Port 8080
+    
+    # Environment Variables (สำหรับ Local Run)
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_KEY: ${APP_KEY:-base64:+uEae8egrYYQ2V1ZjGgHpQTenYN0+jpNvnrAtl/p4Gs=}
+      APP_URL: http://localhost:8080
+      
+      # Database Config (ชี้ไปที่ Service db ด้านล่าง)
+      DB_CONNECTION: pgsql
+      DB_HOST: db        # <-- ชื่อ Service Database
+      DB_PORT: 5432
+      DB_DATABASE: todo
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      
+      # Next.js Config
+      NODE_ENV: production # (หรือ development ถ้าอยากแก้ code สดๆ ต้องทำ Volume mount เพิ่ม)
+
+    depends_on:
+      - db
+
+  # -----------------------------------------------------------------
+  # 2. Database (PostgreSQL)
+  # -----------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: todo-db-local
+    restart: unless-stopped
+    ports:
+      - "5432:5432" # เปิด Port ให้ DB Management tool (เช่น pgAdmin, DBeaver) เข้าได้
+    environment:
+      POSTGRES_DB: todo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
